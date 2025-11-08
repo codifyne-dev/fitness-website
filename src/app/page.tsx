@@ -11,7 +11,7 @@ import BackgroundMusic from '@/components/BackgroundMusic';
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen w-full overflow-x-hidden">
       <Hero />
       <About />
       <Services />

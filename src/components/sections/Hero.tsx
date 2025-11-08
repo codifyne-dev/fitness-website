@@ -8,7 +8,7 @@ import Logo from '@/components/Logo';
 
 const Hero = () => {
   return (
-    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+    <section id="hero" className="relative min-h-screen overflow-x-hidden w-full">
       {/* Theme-adaptable gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-light-bg via-light-surface/30 to-aspirae-teal/10 dark:from-dark-bg dark:via-dark-surface/40 dark:to-wine-red-matte/20"></div>
       
@@ -36,8 +36,9 @@ const Hero = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_2px_2px,rgba(0,0,0,0.1)_1px,transparent_0)] bg-[length:32px_32px] dark:bg-[radial-gradient(circle_at_2px_2px,rgba(255,255,255,0.1)_1px,transparent_0)] dark:bg-[length:32px_32px]"></div>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center -mt-8 sm:-mt-0">
+      {/* Content wrapper */}
+      <div className="relative z-10 pt-16 lg:pt-20 min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] flex items-center justify-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -134,6 +135,7 @@ const Hero = () => {
             {siteConfig.company.description}
           </motion.p>
         </motion.div>
+        </div>
       </div>
     </section>
   );

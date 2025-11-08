@@ -176,35 +176,36 @@ const BackgroundMusic = () => {
     };
   }, []);
 
+  {/* Music Controls */}
   return (
     <div className="fixed bottom-4 right-4 z-40">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-black/80 backdrop-blur-sm rounded-full border border-white/20 overflow-hidden"
+        className="bg-black/80 backdrop-blur-sm rounded-3xl border border-white/20 overflow-hidden"
       >
         {isHidden ? (
           <motion.button
             onClick={() => setIsHidden(false)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
-            className="p-3 text-white hover:text-orange-500 transition-colors cursor-pointer"
+            className="p-3 text-white hover:text-orange-500 transition-colors cursor-pointer flex items-center justify-center"
             aria-label="Show music player"
           >
             <ChevronLeft className="w-5 h-5" />
           </motion.button>
         ) : (
           <>
-            <div className="flex items-center space-x-3 p-3">
+            <div className="flex items-center space-x-3 px-4 py-3">
               {/* Hide Button */}
               <motion.button
                 onClick={() => setIsHidden(true)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
-                className="text-white hover:text-orange-500 transition-colors cursor-pointer"
+                className="text-white hover:text-orange-500 transition-colors cursor-pointer flex items-center justify-center"
                 aria-label="Hide music player"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5" />
               </motion.button>
           {/* Music Icon */}
           <motion.button
@@ -214,7 +215,8 @@ const BackgroundMusic = () => {
             }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.9 }}
-            className="text-white hover:text-orange-500 transition-colors cursor-pointer"
+            className="transition-colors cursor-pointer hover:text-orange-500"
+            style={{ color: showControls ? '#f97316' : '#ffffff' }}
           >
             <Music className="w-5 h-5" />
           </motion.button>
@@ -286,14 +288,8 @@ const BackgroundMusic = () => {
         </div>
 
         {/* Extended Controls */}
-        <AnimatePresence>
-          {showControls && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 pt-3 border-t border-white/20"
-            >
+        {showControls && (
+          <div className="pt-3 px-4 pb-3 border-t border-white/20">
               {/* Track Info */}
               <div className="mb-3 text-center">
                 {audioError ? (
@@ -317,7 +313,7 @@ const BackgroundMusic = () => {
               </div>
 
               {/* Volume Control */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center space-x-2">
                 <VolumeX className="w-4 h-4 text-white" />
                 <input
                   type="range"
@@ -333,9 +329,8 @@ const BackgroundMusic = () => {
                 />
                 <Volume2 className="w-4 h-4 text-white" />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
           </>
         )}
       </motion.div>
