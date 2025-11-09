@@ -27,13 +27,15 @@ export const metadata: Metadata = {
   authors: [{ name: siteConfig.seo.author }],
   creator: siteConfig.company.name,
   icons: {
-    icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: [
+      { url: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
   },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://aspirae.com',
     title: siteConfig.seo.title,
     description: siteConfig.seo.description,
     siteName: siteConfig.company.name,
@@ -76,6 +78,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable} overflow-x-hidden`}>
       <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
         <meta name="theme-color" content="#1C2541" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
       </head>
