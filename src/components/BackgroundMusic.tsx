@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Music, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const BackgroundMusic = () => {
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.3);
   const [showControls, setShowControls] = useState(false);
@@ -17,6 +17,7 @@ const BackgroundMusic = () => {
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  const hasOpenedOnceRef = useRef(false);
 
   const lofiTracks = [
     '/audio/lofi-track-1.mp3',
@@ -28,21 +29,9 @@ const BackgroundMusic = () => {
 
   const loadAudioFile = async (url: string): Promise<AudioBuffer> => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load audio file: ${response.statusText}`);
-      }
-      
+      const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
       const audioContext = audioContextRef.current!;
-      if (!audioContext) {
-        throw new Error('AudioContext is not available');
-      }
       return await audioContext.decodeAudioData(arrayBuffer);
     } catch (error) {
       console.error('Error loading audio file:', error);
@@ -55,7 +44,6 @@ const BackgroundMusic = () => {
       setIsLoading(true);
       setAudioError(null);
       
-      // Create or reuse AudioContext
       let audioContext = audioContextRef.current;
       if (!audioContext || audioContext.state === 'closed') {
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -63,32 +51,10 @@ const BackgroundMusic = () => {
       }
       
       if (audioContext.state === 'suspended') {
-        try {
-          await Promise.race([
-            audioContext.resume(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Resume timeout')), 5000))
-          ]);
-        } catch (error) {
-          setIsLoading(false);
-          return false;
-        }
+        await audioContext.resume();
       }
 
-      let audioBuffer;
-      try {
-        audioBuffer = await Promise.race([
-          loadAudioFile(lofiTracks[currentTrack]),
-          new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('Audio load timeout')), 15000)
-          )
-        ]);
-      } catch (error) {
-        console.error('Failed to load audio file:', error);
-        setAudioError('Audio file not found. Please add lofi tracks to public/audio/ directory.');
-        setIsLoading(false);
-        return false;
-      }
-
+      const audioBuffer = await loadAudioFile(lofiTracks[currentTrack]);
       audioBufferRef.current = audioBuffer;
 
       const sourceNode = audioContext.createBufferSource();
@@ -120,20 +86,12 @@ const BackgroundMusic = () => {
       gainNodeRef.current = gainNode;
 
       sourceNode.start();
-
-      if (audioContext.state === 'suspended') {
-        setIsLoading(false);
-        return false;
-      }
-      
       setIsLoading(false);
-      return true;
       
     } catch (error) {
       console.error('Error starting ambient music:', error);
       setAudioError('Audio file not found. Please add lofi tracks to public/audio/ directory.');
       setIsLoading(false);
-      return false;
     }
   };
 
@@ -175,17 +133,8 @@ const BackgroundMusic = () => {
       stopAmbientMusic();
       setIsPlaying(false);
     } else {
-      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-        try {
-          await audioContextRef.current.resume();
-        } catch (error) {
-          console.error('Failed to resume AudioContext:', error);
-        }
-      }
-      const started = await startAmbientMusic();
-      if (started) {
-        setIsPlaying(true);
-      }
+      await startAmbientMusic();
+      setIsPlaying(true);
     }
   };
 
@@ -224,50 +173,20 @@ const BackgroundMusic = () => {
     }
   };
 
+  // Auto-play when user first opens the music tab
   useEffect(() => {
-    // Start music on mount
-    const startMusicOnMount = async () => {
-      if (isPlaying) {
-        try {
-          const started = await startAmbientMusic();
-          if (!started) {
-            setIsPlaying(false);
-            setIsLoading(false);
-            
-            if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-              setTimeout(async () => {
-                try {
-                  if (audioContextRef.current) {
-                    const wasSuspended = audioContextRef.current.state === 'suspended';
-                    if (wasSuspended) {
-                      await Promise.race([
-                        audioContextRef.current.resume(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Resume timeout')), 2000))
-                      ]);
-                      // Check state after resume
-                      const newState = audioContextRef.current?.state;
-                      if (newState === 'running') {
-                        const retryStarted = await startAmbientMusic();
-                        if (retryStarted) {
-                          setIsPlaying(true);
-                        }
-                      }
-                    }
-                  }
-                } catch (error) {
-                }
-              }, 100);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to start music on mount:', error);
-          setIsPlaying(false);
-          setIsLoading(false);
-        }
-      }
-    };
-    startMusicOnMount();
-    
+    if (!isHidden && !hasOpenedOnceRef.current && !isPlaying) {
+      hasOpenedOnceRef.current = true;
+      startAmbientMusic().then(() => {
+        setIsPlaying(true);
+      }).catch((error) => {
+        console.error('Failed to start music:', error);
+      });
+    }
+  }, [isHidden, isPlaying]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (sourceNodeRef.current) {
         sourceNodeRef.current.stop();
