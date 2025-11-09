@@ -8,7 +8,7 @@ import Logo from '@/components/Logo';
 
 const Hero = () => {
   return (
-    <section id="hero" className="relative min-h-screen overflow-x-hidden w-full">
+    <section id="hero" className="relative min-h-screen overflow-x-hidden overflow-y-visible w-full">
       {/* Theme-adaptable gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-light-bg via-light-surface/30 to-aspirae-teal/10 dark:from-dark-bg dark:via-dark-surface/40 dark:to-wine-red-matte/20"></div>
       
@@ -37,8 +37,8 @@ const Hero = () => {
       </div>
 
       {/* Content wrapper */}
-      <div className="relative z-10 pt-16 lg:pt-20 min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] flex items-center justify-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
+      <div className="relative z-10 pt-16 lg:pt-20 min-h-screen flex items-start justify-center py-12 lg:py-16 pb-24 lg:pb-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full pt-8 lg:pt-16">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -130,7 +130,7 @@ const Hero = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.2 }}
-            className="text-light-text-muted dark:text-dark-text-muted text-sm sm:text-base max-w-xl mx-auto px-4 leading-relaxed"
+            className="text-light-text-muted dark:text-dark-text-muted text-sm sm:text-base max-w-xl mx-auto px-4 leading-relaxed pb-8 lg:pb-12"
           >
             {siteConfig.company.description}
           </motion.p>

@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Music, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const BackgroundMusic = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.3);
   const [showControls, setShowControls] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
+  const [isHidden, setIsHidden] = useState(true);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
@@ -165,6 +165,14 @@ const BackgroundMusic = () => {
   };
 
   useEffect(() => {
+    // Start music on mount since isPlaying defaults to true
+    const startMusicOnMount = async () => {
+      if (isPlaying) {
+        await startAmbientMusic();
+      }
+    };
+    startMusicOnMount();
+    
     return () => {
       if (sourceNodeRef.current) {
         sourceNodeRef.current.stop();
@@ -192,7 +200,7 @@ const BackgroundMusic = () => {
             className="p-3 text-white hover:text-orange-500 transition-colors cursor-pointer flex items-center justify-center"
             aria-label="Show music player"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <Music className="w-5 h-5" />
           </motion.button>
         ) : (
           <>
