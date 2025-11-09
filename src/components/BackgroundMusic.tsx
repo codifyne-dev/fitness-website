@@ -42,8 +42,18 @@ const BackgroundMusic = () => {
     try {
       setIsLoading(true);
       setAudioError(null);
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = audioContext;
+      
+      // Create or reuse AudioContext
+      let audioContext = audioContextRef.current;
+      if (!audioContext || audioContext.state === 'closed') {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = audioContext;
+      }
+      
+      // Resume AudioContext if suspended
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
 
       const audioBuffer = await loadAudioFile(lofiTracks[currentTrack]);
       audioBufferRef.current = audioBuffer;
@@ -79,10 +89,17 @@ const BackgroundMusic = () => {
       sourceNode.start();
       setIsLoading(false);
       
+      if (audioContext.state === 'suspended') {
+        return false;
+      }
+      
+      return true;
+      
     } catch (error) {
       console.error('Error starting ambient music:', error);
       setAudioError('Audio file not found. Please add lofi tracks to public/audio/ directory.');
       setIsLoading(false);
+      return false;
     }
   };
 
@@ -124,8 +141,17 @@ const BackgroundMusic = () => {
       stopAmbientMusic();
       setIsPlaying(false);
     } else {
-      await startAmbientMusic();
-      setIsPlaying(true);
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        try {
+          await audioContextRef.current.resume();
+        } catch (error) {
+          console.error('Failed to resume AudioContext:', error);
+        }
+      }
+      const started = await startAmbientMusic();
+      if (started) {
+        setIsPlaying(true);
+      }
     }
   };
 
@@ -165,10 +191,38 @@ const BackgroundMusic = () => {
   };
 
   useEffect(() => {
-    // Start music on mount since isPlaying defaults to true
+    // Start music on mount
     const startMusicOnMount = async () => {
       if (isPlaying) {
-        await startAmbientMusic();
+        try {
+          const started = await startAmbientMusic();
+          if (!started && audioContextRef.current) {
+            const contextState = audioContextRef.current.state;
+            if (contextState === 'suspended') {
+              setTimeout(async () => {
+                try {
+                  if (audioContextRef.current) {
+                    await audioContextRef.current.resume();
+                    const newState = audioContextRef.current.state;
+                    if (newState === 'running') {
+                      await startAmbientMusic();
+                    } else {
+                      setIsPlaying(false);
+                    }
+                  }
+                } catch (error) {
+                  console.log('Could not resume AudioContext:', error);
+                  setIsPlaying(false);
+                }
+              }, 100);
+            } else {
+              setIsPlaying(false);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to start music on mount:', error);
+          setIsPlaying(false);
+        }
       }
     };
     startMusicOnMount();
