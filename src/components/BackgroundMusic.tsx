@@ -28,9 +28,21 @@ const BackgroundMusic = () => {
 
   const loadAudioFile = async (url: string): Promise<AudioBuffer> => {
     try {
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load audio file: ${response.statusText}`);
+      }
+      
       const arrayBuffer = await response.arrayBuffer();
       const audioContext = audioContextRef.current!;
+      if (!audioContext) {
+        throw new Error('AudioContext is not available');
+      }
       return await audioContext.decodeAudioData(arrayBuffer);
     } catch (error) {
       console.error('Error loading audio file:', error);
@@ -50,12 +62,33 @@ const BackgroundMusic = () => {
         audioContextRef.current = audioContext;
       }
       
-      // Resume AudioContext if suspended
       if (audioContext.state === 'suspended') {
-        await audioContext.resume();
+        try {
+          await Promise.race([
+            audioContext.resume(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Resume timeout')), 5000))
+          ]);
+        } catch (error) {
+          setIsLoading(false);
+          return false;
+        }
       }
 
-      const audioBuffer = await loadAudioFile(lofiTracks[currentTrack]);
+      let audioBuffer;
+      try {
+        audioBuffer = await Promise.race([
+          loadAudioFile(lofiTracks[currentTrack]),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Audio load timeout')), 15000)
+          )
+        ]);
+      } catch (error) {
+        console.error('Failed to load audio file:', error);
+        setAudioError('Audio file not found. Please add lofi tracks to public/audio/ directory.');
+        setIsLoading(false);
+        return false;
+      }
+
       audioBufferRef.current = audioBuffer;
 
       const sourceNode = audioContext.createBufferSource();
@@ -87,12 +120,13 @@ const BackgroundMusic = () => {
       gainNodeRef.current = gainNode;
 
       sourceNode.start();
-      setIsLoading(false);
-      
+
       if (audioContext.state === 'suspended') {
+        setIsLoading(false);
         return false;
       }
       
+      setIsLoading(false);
       return true;
       
     } catch (error) {
@@ -196,32 +230,39 @@ const BackgroundMusic = () => {
       if (isPlaying) {
         try {
           const started = await startAmbientMusic();
-          if (!started && audioContextRef.current) {
-            const contextState = audioContextRef.current.state;
-            if (contextState === 'suspended') {
+          if (!started) {
+            setIsPlaying(false);
+            setIsLoading(false);
+            
+            if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
               setTimeout(async () => {
                 try {
                   if (audioContextRef.current) {
-                    await audioContextRef.current.resume();
-                    const newState = audioContextRef.current.state;
-                    if (newState === 'running') {
-                      await startAmbientMusic();
-                    } else {
-                      setIsPlaying(false);
+                    const wasSuspended = audioContextRef.current.state === 'suspended';
+                    if (wasSuspended) {
+                      await Promise.race([
+                        audioContextRef.current.resume(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Resume timeout')), 2000))
+                      ]);
+                      // Check state after resume
+                      const newState = audioContextRef.current?.state;
+                      if (newState === 'running') {
+                        const retryStarted = await startAmbientMusic();
+                        if (retryStarted) {
+                          setIsPlaying(true);
+                        }
+                      }
                     }
                   }
                 } catch (error) {
-                  console.log('Could not resume AudioContext:', error);
-                  setIsPlaying(false);
                 }
               }, 100);
-            } else {
-              setIsPlaying(false);
             }
           }
         } catch (error) {
           console.error('Failed to start music on mount:', error);
           setIsPlaying(false);
+          setIsLoading(false);
         }
       }
     };
